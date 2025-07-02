@@ -11,7 +11,7 @@ module.exports = {
         'brand-neutral': '#f9fafb'
       },
       fontFamily: {
-        sans: ['IRANSans', 'Vazirmatn', 'sans-serif']
+        sans: ['Vazirmatn', 'sans-serif']
       }
     }
   },
