@@ -3,10 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- offline demo: icon and custom font removed -->
   <title>Dotin Calendar</title>
+  <link rel="stylesheet" href="./vendor/persian-fullcalendar/css/fullcalendar.css" />
 </head>
 <body class="bg-brand-neutral font-sans">
   <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+  <script src="./vendor/persian-fullcalendar/js/jquery.min.js"></script>
+  <script src="./vendor/persian-fullcalendar/js/jquery-ui.min.js"></script>
+  <script src="./vendor/persian-fullcalendar/js/moment.min.js"></script>
+  <script src="./vendor/persian-fullcalendar/js/moment-jalaali.js"></script>
+  <script src="./vendor/persian-fullcalendar/js/fullcalendar.min.js"></script>
+  <script src="./vendor/persian-fullcalendar/js/fa.js"></script>
+  <script type="module" src="./src/main.jsx"></script>
 </body>
 </html>
