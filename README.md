@@ -1,214 +1,243 @@
-# 🎯 Cheat Sheet — OOP / SOLID / Patterns
+# 📌 Cheat Sheet — OOP / SOLID / Patterns (Bad vs Good)
 
 ## 1) SRP — Single Responsibility
 
-**تعریف:** هر کلاس فقط یک مسئولیت و یک دلیل برای تغییر.
-**نشانهٔ بد:** متدهای بی‌ربط در یک کلاس.
+* هر کلاس فقط یک مسئولیت.
 
 ```java
-// ❌ بد
-class Invoice {
-  void calculate() {}
-  void saveToDb() {}
-  void print() {}
-}
+// ❌ Bad: چند مسئولیت در یک کلاس
+class Report { void calculate(){} void saveToDb(){} void print(){} }
 
-// ✅ خوب
-class InvoiceCalculator { void calculate() {} }
-class InvoiceRepository { void saveToDb() {} }
-class InvoicePrinter   { void print() {} }
+// ✅ Good: تفکیک مسئولیت
+class ReportCalculator { void calculate(){} }
+class ReportRepository { void saveToDb(){} }
+class ReportPrinter   { void print(){} }
 ```
 
----
+## 2) OCP — Open/Closed
 
-## 2) OCP — Open/Closed (اوپن‌کلوز)
-
-**تعریف:** برای توسعه باز، برای تغییر بسته.
-**ایدهٔ کلیدی:** از abstraction و پلی‌مورفیسم استفاده کن؛ نه if/else روی نوع.
+* برای توسعه باز، برای تغییر بسته (پلی‌مورفیسم به‌جای if/else).
 
 ```java
+// ❌ Bad
+class AreaCalculator {
+  double area(Object s){
+    if(s instanceof Circle c) return Math.PI*c.r*c.r;
+    if(s instanceof Rect r)   return r.w*r.h;
+    return 0;
+  }
+}
+// ✅ Good
 interface Shape { double area(); }
 class Circle implements Shape { double r; Circle(double r){this.r=r;} public double area(){return Math.PI*r*r;} }
 class Rect   implements Shape { double w,h; Rect(double w,double h){this.w=w;this.h=h;} public double area(){return w*h;} }
+class AreaCalculator { double area(Shape s){ return s.area(); } }
+```
 
-class AreaCalculator {
-  double calc(Shape s){ return s.area(); } // بدون if/else
+## 3) LSP — Liskov Substitution
+
+* زیرکلاس باید بدون شکستن رفتار، جای والد بنشیند.
+
+```java
+// ❌ Bad: پرنده‌ای که نمی‌تواند fly نقض LSP
+interface Bird { void fly(); }
+class Penguin implements Bird { public void fly(){ throw new UnsupportedOperationException(); } }
+
+// ✅ Good: سلسله‌مراتب درست
+interface Bird2 {}
+interface FlyingBird extends Bird2 { void fly(); }
+class Sparrow implements FlyingBird { public void fly(){} }
+class Penguin2 implements Bird2 { /* بدون fly */ }
+```
+
+## 4) ISP — Interface Segregation
+
+* اینترفیس‌ها را خرد کن؛ اجبار متدهای بی‌ربط نداشته باش.
+
+```java
+// ❌ Bad
+interface Machine { void print(); void scan(); void fax(); }
+class SimplePrinter implements Machine { public void print(){} public void scan(){} public void fax(){} /* بی‌ربط‌ها بی‌استفاده */ }
+
+// ✅ Good
+interface Printer { void print(); }
+interface Scanner { void scan(); }
+class SimplePrinter2 implements Printer { public void print(){} }
+```
+
+## 5) DIP — Dependency Inversion
+
+* وابستگی به abstraction، تزریق وابستگی.
+
+```java
+// ❌ Bad
+class Service {
+  private final MySqlDb db = new MySqlDb();
+  void save(){ db.save("x"); }
+}
+// ✅ Good
+interface Db { void save(String x); }
+class MySqlDb implements Db { public void save(String x){} }
+class Service2 {
+  private final Db db;
+  Service2(Db db){ this.db=db; }  // Constructor Injection
+  void save(){ db.save("x"); }
 }
 ```
 
----
+## 6) Strategy Pattern
 
-## 3) Strategy Pattern
-
-**مسئله:** الگوریتم قابل تعویض باشد (runtime).
-**کلید:** ترکیب (Composition) با اینترفیس استراتژی.
+* الگوریتم‌های قابل تعویض در زمان اجرا (Composition).
 
 ```java
+// ❌ Bad: if/else برای انتخاب الگوریتم
+class SorterBad {
+  void sort(int[] a, String t){ if(t.equals("quick")){/*...*/} else {/*...*/} }
+}
+// ✅ Good
 interface SortStrategy { void sort(int[] a); }
-class QuickSort implements SortStrategy { public void sort(int[] a){ /* ... */ } }
-class MergeSort implements SortStrategy { public void sort(int[] a){ /* ... */ } }
-
+class QuickSort implements SortStrategy { public void sort(int[] a){} }
+class MergeSort implements SortStrategy { public void sort(int[] a){} }
 class Sorter {
   private SortStrategy s;
-  Sorter(SortStrategy s){ this.s = s; }
-  void setStrategy(SortStrategy s){ this.s = s; }
+  Sorter(SortStrategy s){ this.s=s; }
+  void setStrategy(SortStrategy s){ this.s=s; }
   void sort(int[] a){ s.sort(a); }
 }
-
-// استفاده:
-Sorter sorter = new Sorter(new QuickSort());
-sorter.sort(new int[]{3,1,2});
-sorter.setStrategy(new MergeSort());
 ```
 
----
+## 7) Template Method Pattern
 
-## 4) Template Method (برای جلوگیری از Duplicate Pipelines)
-
-**مسئله:** اسکلت ثابت + قدم‌های متغیر.
-**کلید:** ارث‌بری و متد قالب.
+* اسکلت ثابت + قدم‌های متغیر (ارث‌بری).
 
 ```java
-abstract class FileProcessor {
+// ❌ Bad: کپیِ پایپ‌لاین مشابه
+class TxtProcBad { void process(){ open(); readTxt(); close(); } void open(){} void readTxt(){} void close(){} }
+class CsvProcBad { void process(){ open(); readCsv(); close(); } void open(){} void readCsv(){} void close(){} }
+
+// ✅ Good
+abstract class FileProc {
   final void process(){ open(); read(); close(); }
-  void open(){ System.out.println("open"); }
+  void open(){ }
   abstract void read();
-  void close(){ System.out.println("close"); }
+  void close(){ }
 }
-class TextProc extends FileProcessor { void read(){ System.out.println("read txt"); } }
-class CsvProc  extends FileProcessor { void read(){ System.out.println("read csv"); } }
+class TxtProc extends FileProc { void read(){ /* txt */ } }
+class CsvProc extends FileProc { void read(){ /* csv */ } }
 ```
 
----
+## 8) Mediator Pattern
 
-## 5) Mediator Pattern
-
-**مسئله:** وابستگیِ تنگاتنگ میان چند جزء (tightly-coupled).
-**کلید:** همه با یک میانجی صحبت کنند.
+* کاهش coupling بین کامپوننت‌ها؛ هماهنگی در میانجی.
 
 ```java
-interface Mediator { void notify(Component c, String ev); }
-abstract class Component { protected Mediator m; Component(Mediator m){this.m=m;} }
-
-class TextBox extends Component {
-  String text=""; TextBox(Mediator m){ super(m); }
-  void set(String t){ text=t; m.notify(this,"textChanged"); }
+// ❌ Bad: اجزا مستقیماً همدیگر را صدا می‌زنند
+class ButtonBad {
+  TextBoxBad tb;
+  ButtonBad(TextBoxBad tb){ this.tb=tb; }
+  void click(){ if(tb.text.isEmpty()) System.out.println("Enter!"); }
 }
-class Button extends Component { Button(Mediator m){ super(m); } void click(){ m.notify(this,"click"); } }
+class TextBoxBad { String text=""; }
 
+// ✅ Good
+interface Mediator { void notify(Component c, String ev); }
+abstract class Component { protected Mediator m; Component(Mediator m){ this.m=m; } }
+class TextBox extends Component { String text=""; TextBox(Mediator m){ super(m);} void set(String t){ text=t; m.notify(this,"textChanged"); } }
+class Button  extends Component { Button(Mediator m){ super(m);} void click(){ m.notify(this,"click"); } }
 class Dialog implements Mediator {
   TextBox name = new TextBox(this);
-  Button  ok   = new Button(this);
+  Button ok = new Button(this);
   public void notify(Component c,String ev){
-    if(c==ok && ev.equals("click")){
-      System.out.println(name.text.isEmpty()?"Enter name!":"Submit "+name.text);
-    }
+    if(c==ok && ev.equals("click")) System.out.println(name.text.isEmpty()?"Enter!":"Submit "+name.text);
   }
 }
 ```
 
----
+## 9) Observer Pattern
 
-## 6) Observer Pattern
-
-**مسئله:** یک منبع تغییر می‌کند و چند مصرف‌کننده باخبر شوند (publish/subscribe).
-**کلید:** Subject لیستی از observers نگه می‌دارد.
+* Publish/Subscribe؛ Subject ناظرها را خبر می‌کند.
 
 ```java
-interface Observer { void update(int price); }
-interface Subject  { void attach(Observer o); void setPrice(int p); }
-
-class Stock implements Subject {
-  private List<Observer> obs = new ArrayList<>();
-  private int price;
-  public void attach(Observer o){ obs.add(o); }
-  public void setPrice(int p){ price=p; obs.forEach(o->o.update(price)); }
+// ❌ Bad: پولینگ یا چک‌کردن دستی توسط مصرف‌کننده‌ها
+class DashboardBad {
+  StockBad s;
+  void tick(){ System.out.println("price="+s.price); }
 }
-class MobileApp implements Observer { public void update(int p){ System.out.println("New price: "+p); } }
+class StockBad { int price; }
 
-// استفاده:
-Stock s = new Stock(); s.attach(new MobileApp()); s.setPrice(120);
+// ✅ Good
+interface Observer { void update(int price); }
+class Stock implements Subject {
+  private final List<Observer> os = new ArrayList<>();
+  private int price;
+  public void attach(Observer o){ os.add(o); }
+  public void setPrice(int p){ price=p; os.forEach(o -> o.update(price)); }
+}
+interface Subject { void attach(Observer o); }
+class MobileApp implements Observer { public void update(int p){ System.out.println("New: "+p); } }
 ```
 
----
+## 10) State Pattern
 
-## 7) State Pattern
-
-**مسئله:** رفتار شیء وابسته به وضعیت است؛ if/switchهای زیاد بدبو می‌شوند.
-**کلید:** هر وضعیت یک کلاس.
+* رفتار وابسته به وضعیت؛ حذف if/switch روی فلگ‌ها.
 
 ```java
-interface PlayerState { void play(Player p); void pause(Player p); }
+// ❌ Bad: فلگ‌محور
+class PlayerBad {
+  enum St { STOPPED, PLAYING }
+  St st = St.STOPPED;
+  void play(){ if(st==St.STOPPED){ System.out.println("Start"); st=St.PLAYING; } }
+}
+
+// ✅ Good
+interface PlayerState { void play(Player p); }
 class Player {
   PlayerState st = new Stopped();
   void set(PlayerState s){ st=s; }
-  void play(){ st.play(this); } void pause(){ st.pause(this); }
+  void play(){ st.play(this); }
 }
-class Stopped implements PlayerState {
-  public void play(Player p){ System.out.println("Start"); p.set(new Playing()); }
-  public void pause(Player p){ System.out.println("Can't pause"); }
-}
-class Playing implements PlayerState {
-  public void play(Player p){ System.out.println("Already"); }
-  public void pause(Player p){ System.out.println("Paused"); p.set(new Stopped()); }
-}
+class Stopped implements PlayerState { public void play(Player p){ System.out.println("Start"); p.set(new Playing()); } }
+class Playing implements PlayerState { public void play(Player p){ System.out.println("Already"); } }
 ```
 
----
+## 11) Package (پکیج جاوا)
 
-## 8) Package (پکیج) در جاوا
-
-**هدف:** سازمان‌دهی کد، مدیریت دسترسی، جلوگیری از name clash.
-**دسترسی‌ها:** `public`, `protected`, **package-private**(پیش‌فرض)، `private`.
-
-**ساختار و نمونه:**
-
-```
-src/
- └─ com/example/billing/
-     ├─ Invoice.java
-     └─ TaxCalculator.java
-```
+* سازمان‌دهی و کنترل دسترسی؛ پرهیز از name clash.
 
 ```java
-// بالا‌ترین خط فایل‌ها
-package com.example.billing;
+// ❌ Bad: بدون پکیج، همه در default package
+class TaxCalculatorBad { /* ... */ }
 
-public class TaxCalculator { public double calc(double amount){ return amount*0.09; } }
-
-// فایل دیگر در همان پکیج (به پیش‌فرض‌ها دسترسی دارد)
-package com.example.billing;
-class Invoice { double total; /* ... */ }
+// ✅ Good: ساختاردهی
+// فایل: src/com/app/billing/TaxCalculator.java
+package com.app.billing;
+public class TaxCalculator { public double calc(double x){ return x*0.09; } }
 ```
 
-> نکته: کلاس‌های داخل یک پکیج به اعضای **package-private** هم دسترسی دارند؛ بیرونی‌ها ندارند.
+## 12) Inheritance vs Composition
 
----
-
-## 9) Inheritance vs Composition (خلاصهٔ کاربردی)
-
-* **Inheritance (is-a):** وقتی واقعاً «X یک نوع Y است». پلی‌مورفیسم در سلسله‌مراتب.
-* **Composition (has-a):** وقتی «X دارای Y است» و می‌خواهی رفتارها را تعویض‌پذیر نگه داری (اغلب بهتر برای OCP/LSP/تست).
+* ارث‌بری وقتی «X نوعی از Y است». ترکیب وقتی «X دارای Y است».
 
 ```java
-// Composition با Strategy بهتر از ارث‌بری در بسیاری سناریوها
+// ❌ Bad: ارث‌بری برای افزودن قابلیت (رابطه is-a واقعی نیست)
+class CarBad extends EngineBad { void drive(){ start(); } }
+class EngineBad { void start(){} }
+
+// ✅ Good: Composition (تعویض‌پذیر)
+interface Engine { void start(); }
+class PetrolEngine implements Engine { public void start(){ System.out.println("vroom"); } }
 class Car {
-  Engine engine; Car(Engine e){ this.engine=e; }
+  private final Engine engine;
+  Car(Engine e){ this.engine=e; }
   void drive(){ engine.start(); }
 }
-interface Engine{ void start(); }
-class PetrolEngine implements Engine{ public void start(){ System.out.println("vroom"); } }
 ```
 
 ---
 
-## 10) بوی بد کد و علاج سریع
+### نکات سریع تمایزی
 
-* Duplicate Code → Template / Strategy / Extract Method
-* Tight Coupling → Mediator, Interfaces, DI
-* Long Method → Extract Method
-* Flag-based State → State Pattern
-* Primitive Obsession → Value Object
-
----
-
+* **1–5 = SOLID** اصول طراحی.
+* **6–10 = Patterns** راه‌حل‌های تکرارشونده.
+* **11 = Package** سازمان‌دهی کد.
+* **12 = Inheritance vs Composition** انتخاب رابطهٔ درست.
